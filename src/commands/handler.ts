@@ -290,21 +290,39 @@ export class CommandHandler extends BaseHandler {
 				}
 				if (commandInstance instanceof SubCommand) continue;
 
-				const commandName = commandInstance.name;
-				const checkDuplicated = this.values.find(x => x.name === commandName);
-				if (checkDuplicated) {
-					this.logger.warn([
-						`Command name ${commandName} is already used in ${checkDuplicated.__filePath}`,
-						`Ignoring ${file.path}`,
-					]);
-					continue;
-				}
-
 				commandInstance.__filePath = file.path;
 				commandInstance.props ??= client.options.commands?.defaults?.props ?? {};
 				const isAvailableCommand = this.stablishCommandDefaults(commandInstance);
 				if (isAvailableCommand) {
 					commandInstance = isAvailableCommand;
+
+					const commandName = commandInstance.name;
+
+					if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(commandName)) {
+						this.logger.warn(`Invalid command name ${commandName}.`);
+						continue;
+					}
+
+					// check for duplicated command name
+					const checkDuplicated = this.values.find(x => x.name === commandName);
+					if (checkDuplicated) {
+						this.logger.warn([
+							`Command name ${commandName} is already used in ${checkDuplicated.__filePath}.`,
+							`Ignoring ${file.path}`,
+						]);
+						continue;
+					}
+
+					// check for invalid options name
+					for (const option of commandInstance.options ?? []) {
+						if (option instanceof SubCommand) continue;
+
+						if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
+							this.logger.warn(`Invalid option name ${option.name} in command ${commandName}.`);
+							continue;
+						}
+					}
+
 					if (commandInstance.__autoload) {
 						//@AutoLoad
 						const options = await this.getFiles(dirname(file.path));
