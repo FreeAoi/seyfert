@@ -324,7 +324,7 @@ export class CommandHandler extends BaseHandler {
 										subCommand.__filePath = option;
 										commandInstance.options!.push(subCommand);
 									} else {
-										this.logger.warn(subCommand ? 'SubCommand expected' : 'Invalid SubCommand', subCommand);
+										console.log(`${option} is not a valid SubCommand for ${commandName}`);
 									}
 								}
 							} catch {
