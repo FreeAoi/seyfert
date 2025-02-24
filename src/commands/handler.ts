@@ -342,16 +342,20 @@ export class CommandHandler extends BaseHandler {
 							}
 						}
 					}
+					let error = false;
 					for (const option of commandInstance.options ?? []) {
 
 						if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
 							const isSubCommand = option instanceof SubCommand ? 'subcommand' : 'option';
-							this.logger.warn(`Invalid ${isSubCommand} name ${option.name} in command ${commandName}. Skipping...`);
+							this.logger.warn(`Invalid ${isSubCommand} name ${option.name} in command ${commandName}.`);
+							error = true;
 							continue;
 						}
 
 						if (option instanceof SubCommand) this.stablishSubCommandDefaults(commandInstance, option);
 					}
+
+					if (error) continue;
 				}
 				this.stablishContextCommandDefaults(commandInstance);
 				this.parseLocales(commandInstance);
