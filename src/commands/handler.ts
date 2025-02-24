@@ -313,16 +313,6 @@ export class CommandHandler extends BaseHandler {
 						continue;
 					}
 
-					// check for invalid options name
-					for (const option of commandInstance.options ?? []) {
-						if (option instanceof SubCommand) continue;
-
-						if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
-							this.logger.warn(`Invalid option name ${option.name} in command ${commandName}.`);
-							continue;
-						}
-					}
-
 					if (commandInstance.__autoload) {
 						//@AutoLoad
 						const options = await this.getFiles(dirname(file.path));
@@ -353,6 +343,13 @@ export class CommandHandler extends BaseHandler {
 						}
 					}
 					for (const option of commandInstance.options ?? []) {
+
+						if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
+							const isSubCommand = option instanceof SubCommand ? 'subcommand' : 'option';
+							this.logger.warn(`Invalid ${isSubCommand} name ${option.name} in command ${commandName}. Skipping...`);
+							continue;
+						}
+
 						if (option instanceof SubCommand) this.stablishSubCommandDefaults(commandInstance, option);
 					}
 				}
