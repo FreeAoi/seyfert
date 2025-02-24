@@ -4,15 +4,20 @@ import type { Channels } from '../../cache/resources/channels';
 import {
 	type AnonymousGuildStructure,
 	type AutoModerationRuleStructure,
+	CategoryChannelStructure,
 	type GuildMemberStructure,
 	type GuildStructure,
+	StageChannelStructure,
 	type StickerStructure,
+	TextGuildChannelStructure,
 	Transformers,
+	VoiceChannelStructure,
 } from '../../client/transformers';
 import { type AllChannels, BaseChannel, type CreateStickerBodyRequest, Guild, channelFrom } from '../../structures';
 import type {
 	APIChannel,
 	APISticker,
+	ChannelType,
 	GuildWidgetStyle,
 	RESTGetAPICurrentUserGuildsQuery,
 	RESTPatchAPIAutoModerationRuleJSONBody,
@@ -153,10 +158,16 @@ export class GuildShorter extends BaseShorter {
 		 * @param body The data for creating the channel.
 		 * @returns A Promise that resolves to the created channel.
 		 */
-		create: async (guildId: string, body: RESTPostAPIGuildChannelJSONBody) => {
+		create: async <T extends RESTPostAPIGuildChannelJSONBody["type"]>(guildId: string, body: RESTPostAPIGuildChannelJSONBody & { type: T }): Promise<
+			T extends ChannelType.GuildVoice ? VoiceChannelStructure :
+			T extends ChannelType.GuildText ? TextGuildChannelStructure :
+			T extends ChannelType.GuildStageVoice ? StageChannelStructure :
+			T extends ChannelType.GuildCategory ? CategoryChannelStructure :
+			AllChannels
+			> => {
 			const res = await this.client.proxy.guilds(guildId).channels.post({ body });
 			await this.client.cache.channels?.setIfNI(CacheFrom.Rest, BaseChannel.__intent__(guildId), res.id, guildId, res);
-			return channelFrom(res, this.client);
+			return channelFrom(res, this.client) as any;
 		},
 
 		/**
