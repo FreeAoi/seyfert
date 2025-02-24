@@ -343,7 +343,7 @@ export class CommandHandler extends BaseHandler {
 										commandInstance.options!.push(subCommand);
 									} else {
 										this.logger.warn(
-											`${option} is not a valid SubCommand for its parent command ${commandName}`,
+											`${option} must be a class that extends SubCommand.`,
 										);
 									}
 								}
