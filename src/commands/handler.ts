@@ -298,7 +298,7 @@ export class CommandHandler extends BaseHandler {
 
 					const commandName = commandInstance.name;
 
-					if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(commandName)) {
+					if (!/^[-_\p{Ll}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(commandName)) {
 						this.logger.warn(`Invalid command name ${commandName}.`);
 						continue;
 					}
@@ -345,7 +345,7 @@ export class CommandHandler extends BaseHandler {
 					let error = false;
 					for (const option of commandInstance.options ?? []) {
 
-						if (!/^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
+						if (!/^[-_\p{Ll}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
 							const isSubCommand = option instanceof SubCommand ? 'subcommand' : 'option';
 							this.logger.warn(`Invalid ${isSubCommand} name ${option.name} in command ${commandName}.`);
 							error = true;
