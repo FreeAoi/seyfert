@@ -167,8 +167,8 @@ export class BaseNoEditableChannel<T extends ChannelType> extends DiscordBase<AP
 			list: (force = false): Promise<AllChannels[]> => ctx.client.guilds.channels.list(ctx.guildId, force),
 			fetch: (id: string, force = false): Promise<AllChannels> =>
 				ctx.client.guilds.channels.fetch(ctx.guildId, id, force),
-			create: (body: RESTPostAPIGuildChannelJSONBody): Promise<AllChannels> =>
-				ctx.client.guilds.channels.create(ctx.guildId, body),
+			create: <T extends RESTPostAPIGuildChannelJSONBody["type"]>(body: RESTPostAPIGuildChannelJSONBody & { type: T }) =>
+				ctx.client.guilds.channels.create<T>(ctx.guildId, body),
 			delete: (id: string, reason?: string): Promise<AllChannels> =>
 				ctx.client.guilds.channels.delete(ctx.guildId, id, reason),
 			edit: (id: string, body: RESTPatchAPIChannelJSONBody, reason?: string): Promise<AllChannels> =>
