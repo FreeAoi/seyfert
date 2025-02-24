@@ -290,6 +290,16 @@ export class CommandHandler extends BaseHandler {
 				}
 				if (commandInstance instanceof SubCommand) continue;
 
+				const commandName = commandInstance.name;
+				const checkDuplicated = this.values.find(x => x.name === commandName);
+				if (checkDuplicated) {
+					this.logger.warn([
+						`Command name ${commandName} is already used in ${checkDuplicated.__filePath}`,
+						`Ignoring ${file.path}`,
+					]);
+					continue;
+				}
+
 				commandInstance.__filePath = file.path;
 				commandInstance.props ??= client.options.commands?.defaults?.props ?? {};
 				const isAvailableCommand = this.stablishCommandDefaults(commandInstance);
