@@ -49,14 +49,3 @@ export abstract class ComponentCommand {
 	onMiddlewaresError?(context: ComponentContext, error: string): any;
 	onInternalError?(client: UsingClient, error?: unknown): any;
 }
-
-class Test extends ComponentCommand {
-	componentType: keyof ContextComponentCommandInteractionMap = 'Button';
-
-	customId = /test/;
-
-	run(context: ComponentContext<typeof this.componentType>) {
-		throw new Error('Method not implemented.');
-	}
-	
-}
