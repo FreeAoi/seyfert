@@ -14,13 +14,24 @@ export interface ComponentCommand {
 export abstract class ComponentCommand {
 	type = InteractionCommandType.COMPONENT;
 	abstract componentType: keyof ContextComponentCommandInteractionMap;
-	customId?: string;
+
+	customId?: string | RegExp;
 	filter?(context: ComponentContext<typeof this.componentType>): Promise<boolean> | boolean;
+
 	abstract run(context: ComponentContext<typeof this.componentType>): any;
 
 	/** @internal */
 	_filter(context: ComponentContext) {
-		if (this.customId && this.customId !== context.customId) return false;
+
+		if (this.customId) {
+			const isString = typeof this.customId === 'string';
+			const matches = isString 
+				? this.customId === context.customId
+				: (this.customId as RegExp).test(context.customId);
+			
+			if (!matches) return false;
+		}
+
 		if (this.filter) return this.filter(context);
 		return true;
 	}
@@ -37,4 +48,15 @@ export abstract class ComponentCommand {
 	onRunError?(context: ComponentContext, error: unknown): any;
 	onMiddlewaresError?(context: ComponentContext, error: string): any;
 	onInternalError?(client: UsingClient, error?: unknown): any;
+}
+
+class Test extends ComponentCommand {
+	componentType: keyof ContextComponentCommandInteractionMap = 'Button';
+
+	customId = /test/;
+
+	run(context: ComponentContext<typeof this.componentType>) {
+		throw new Error('Method not implemented.');
+	}
+	
 }
