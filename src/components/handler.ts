@@ -118,7 +118,7 @@ export class ComponentHandler extends BaseHandler {
 					this.createComponentCollector(messageId, channelId, guildId, options, old.components);
 				});
 			},
-			waitFor: (customId) => {
+			waitFor: (customId: UserMatches) => {
 				return new Promise((resolve) => {
 					this.values.get(messageId)!.__run(customId, (interaction) => {
 						resolve(interaction);
