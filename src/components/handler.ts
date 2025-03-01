@@ -38,6 +38,9 @@ export interface CreateComponentCollectorResult {
 		callback: ComponentCallback<T>,
 	): any;
 	stop(reason?: string): any;
+	asyncRun(
+		customId: UserMatches
+	): Promise<CollectorInteraction>
 }
 
 export class ComponentHandler extends BaseHandler {
@@ -115,6 +118,13 @@ export class ComponentHandler extends BaseHandler {
 					this.createComponentCollector(messageId, channelId, guildId, options, old.components);
 				});
 			},
+			waitFor: (customId) => {
+				return new Promise((resolve) => {
+					this.values.get(messageId)!.__run(customId, (interaction) => {
+						resolve(interaction);
+					});
+				});
+			}
 		};
 	}
 
