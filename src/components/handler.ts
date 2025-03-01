@@ -38,9 +38,7 @@ export interface CreateComponentCollectorResult {
 		callback: ComponentCallback<T>,
 	): any;
 	stop(reason?: string): any;
-	asyncRun(
-		customId: UserMatches
-	): Promise<CollectorInteraction | null>
+	asyncRun(customId: UserMatches): Promise<CollectorInteraction | null>;
 }
 
 export class ComponentHandler extends BaseHandler {
@@ -118,20 +116,22 @@ export class ComponentHandler extends BaseHandler {
 					this.createComponentCollector(messageId, channelId, guildId, options, old.components);
 				});
 			},
-			asyncRun: (customId) => {
-				return new Promise((resolve) => {
+			asyncRun: customId => {
+				return new Promise(resolve => {
 					const getValue = this.values.get(messageId);
-					
-					this.values.get(messageId)!.__run(customId, (interaction) => {
+
+					this.values.get(messageId)!.__run(customId, interaction => {
+						this.clearValue(messageId);
 						resolve(interaction);
 					});
 
 					setTimeout(() => {
+						this.clearValue(messageId);
 						resolve(null);
 						// by default 15 seconds in case user don't do anything
-					}, getValue?.timeout ?? 15_000);
+					}, getValue?.options?.timeout ?? 15_000);
 				});
-			}
+			},
 		};
 	}
 
