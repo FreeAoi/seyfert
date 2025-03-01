@@ -118,18 +118,23 @@ export class ComponentHandler extends BaseHandler {
 			},
 			asyncRun: customId => {
 				return new Promise(resolve => {
-					const getValue = this.values.get(messageId);
+					const collector = this.values.get(messageId);
+
+					if (!collector) {
+						resolve(null);
+						return;
+					}
 
 					this.values.get(messageId)!.__run(customId, interaction => {
 						this.clearValue(messageId);
 						resolve(interaction);
 					});
 
-					setTimeout(() => {
+					collector.timeout = setTimeout(() => {
 						this.clearValue(messageId);
 						resolve(null);
 						// by default 15 seconds in case user don't do anything
-					}, getValue?.options?.timeout ?? 15_000);
+					}, collector?.options?.timeout ?? 15_000);
 				});
 			},
 		};
