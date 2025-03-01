@@ -40,7 +40,7 @@ export interface CreateComponentCollectorResult {
 	stop(reason?: string): any;
 	asyncRun(
 		customId: UserMatches
-	): Promise<CollectorInteraction>
+	): Promise<CollectorInteraction | null>
 }
 
 export class ComponentHandler extends BaseHandler {
@@ -120,9 +120,16 @@ export class ComponentHandler extends BaseHandler {
 			},
 			asyncRun: (customId) => {
 				return new Promise((resolve) => {
+					const getValue = this.values.get(messageId);
+					
 					this.values.get(messageId)!.__run(customId, (interaction) => {
 						resolve(interaction);
 					});
+
+					setTimeout(() => {
+						resolve(null);
+						// by default 15 seconds in case user don't do anything
+					}, getValue?.timeout ?? 15_000);
 				});
 			}
 		};
