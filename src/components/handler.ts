@@ -130,6 +130,7 @@ export class ComponentHandler extends BaseHandler {
 						resolve(interaction);
 					});
 
+					if (collector?.timeout) clearTimeout(collector.timeout);
 					collector.timeout = setTimeout(() => {
 						this.clearValue(messageId);
 						resolve(null);
