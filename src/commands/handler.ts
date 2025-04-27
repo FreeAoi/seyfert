@@ -332,9 +332,7 @@ export class CommandHandler extends BaseHandler {
 										subCommand.__filePath = option;
 										commandInstance.options!.push(subCommand);
 									} else {
-										this.logger.warn(
-											`${option} must be a class that extends SubCommand.`,
-										);
+										this.logger.warn(`${option} must be a class that extends SubCommand.`);
 									}
 								}
 							} catch {
@@ -344,7 +342,6 @@ export class CommandHandler extends BaseHandler {
 					}
 					let error = false;
 					for (const option of commandInstance.options ?? []) {
-
 						if (!/^[-_\p{Ll}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u.test(option.name)) {
 							const isSubCommand = option instanceof SubCommand ? 'subcommand' : 'option';
 							this.logger.warn(`Invalid ${isSubCommand} name ${option.name} in command ${commandName}.`);
@@ -497,6 +494,8 @@ export class CommandHandler extends BaseHandler {
 
 	stablishContextCommandDefaults(commandInstance: InstanceType<HandleableCommand>): ContextMenuCommand | false {
 		if (!(commandInstance instanceof ContextMenuCommand)) return false;
+		commandInstance.onBeforeMiddlewares ??= this.client.options.commands?.defaults?.onBeforeMiddlewares;
+
 		commandInstance.onAfterRun ??= this.client.options.commands?.defaults?.onAfterRun;
 
 		commandInstance.onBotPermissionsFail ??= this.client.options.commands?.defaults?.onBotPermissionsFail;
@@ -513,6 +512,8 @@ export class CommandHandler extends BaseHandler {
 		commandInstance: InstanceType<HandleableCommand>,
 	): OmitInsert<Command, 'options', { options: NonNullable<Command['options']> }> | false {
 		if (!(commandInstance instanceof Command)) return false;
+		commandInstance.onBeforeMiddlewares ??= this.client.options.commands?.defaults?.onBeforeMiddlewares;
+		commandInstance.onBeforeOptions ??= this.client.options.commands?.defaults?.onBeforeOptions;
 		commandInstance.onAfterRun ??= this.client.options.commands?.defaults?.onAfterRun;
 		commandInstance.onBotPermissionsFail ??= this.client.options.commands?.defaults?.onBotPermissionsFail;
 		commandInstance.onInternalError ??= this.client.options.commands?.defaults?.onInternalError;
@@ -526,6 +527,14 @@ export class CommandHandler extends BaseHandler {
 
 	stablishSubCommandDefaults(commandInstance: Command, option: SubCommand): SubCommand {
 		option.middlewares = (commandInstance.middlewares ?? []).concat(option.middlewares ?? []);
+		option.onBeforeMiddlewares =
+			option.onBeforeMiddlewares?.bind(option) ??
+			commandInstance.onBeforeMiddlewares?.bind(commandInstance) ??
+			this.client.options.commands?.defaults?.onBeforeMiddlewares;
+		option.onBeforeOptions =
+			option.onBeforeOptions?.bind(option) ??
+			commandInstance.onBeforeOptions?.bind(commandInstance) ??
+			this.client.options.commands?.defaults?.onBeforeOptions;
 		option.onMiddlewaresError =
 			option.onMiddlewaresError?.bind(option) ??
 			commandInstance.onMiddlewaresError?.bind(commandInstance) ??

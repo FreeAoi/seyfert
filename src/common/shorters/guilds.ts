@@ -9,12 +9,20 @@ import {
 	type StickerStructure,
 	Transformers,
 } from '../../client/transformers';
-import { type AllChannels, BaseChannel, type CreateStickerBodyRequest, Guild, channelFrom } from '../../structures';
+import type { SeyfertChannelMap } from '../../commands';
+import {
+	type AllChannels,
+	BaseChannel,
+	type CreateStickerBodyRequest,
+	type GuildChannelTypes,
+	channelFrom,
+} from '../../structures';
 import type {
 	APIChannel,
 	APISticker,
 	GuildWidgetStyle,
 	RESTGetAPICurrentUserGuildsQuery,
+	RESTGetAPIGuildQuery,
 	RESTPatchAPIAutoModerationRuleJSONBody,
 	RESTPatchAPIChannelJSONBody,
 	RESTPatchAPIGuildChannelPositionsJSONBody,
@@ -24,6 +32,8 @@ import type {
 	RESTPostAPIGuildChannelJSONBody,
 	RESTPostAPIGuildsJSONBody,
 } from '../../types';
+import type { APITextChannel } from '../../types/payloads/channel';
+import type { MakeRequired } from '../types/util';
 import { BaseShorter } from './base';
 
 export class GuildShorter extends BaseShorter {
@@ -41,20 +51,32 @@ export class GuildShorter extends BaseShorter {
 	/**
 	 * Fetches a guild by its ID.
 	 * @param id The ID of the guild to fetch.
-	 * @param force Whether to force fetching the guild from the API even if it exists in the cache.
+	 * @param options The options for fetching the guild.
+	 * @param options.query The query parameters for fetching the guild.
+	 * @param options.force Whether to force fetching the guild from the API even if it exists in the cache.
 	 * @returns A Promise that resolves to the fetched guild.
 	 */
-	async fetch(id: string, force = false): Promise<GuildStructure<'api'>> {
-		return Transformers.Guild<'api'>(this.client, await this.raw(id, force));
+	async fetch(id: string, options: GuildFetchOptions | boolean = false) {
+		return Transformers.Guild<'api'>(this.client, await this.raw(id, options));
 	}
 
-	async raw(id: string, force = false) {
-		if (!force) {
+	/**
+	 * Fetches a guild by its ID.
+	 * @param id The ID of the guild to fetch.
+	 * @param options The options for fetching the guild.
+	 * @param options.query The query parameters for fetching the guild.
+	 * @param options.force Whether to force fetching the guild from the API even if it exists in the cache.
+	 * @returns A Promise that resolves to the fetched guild.
+	 */
+	async raw(id: string, options: GuildFetchOptions | boolean = false) {
+		if (!(typeof options === 'boolean' ? options : options.force)) {
 			const guild = await this.client.cache.guilds?.raw(id);
 			if (guild) return guild;
 		}
 
-		const data = await this.client.proxy.guilds(id).get();
+		const data = await this.client.proxy
+			.guilds(id)
+			.get({ query: typeof options === 'boolean' ? undefined : options.query });
 		await this.client.cache.guilds?.patch(CacheFrom.Rest, id, data);
 		return (await this.client.cache.guilds?.raw(id)) ?? data;
 	}
@@ -69,11 +91,11 @@ export class GuildShorter extends BaseShorter {
 		return this.client.proxy.guilds(id).widget.get({ query: { style } });
 	}
 
-	async edit(guildId: string, body: RESTPatchAPIGuildJSONBody, reason?: string) {
+	async edit(guildId: string, body: RESTPatchAPIGuildJSONBody, reason?: string): Promise<GuildStructure<'api'>> {
 		const guild = await this.client.proxy.guilds(guildId).patch({ body, reason });
 
 		if (!this.client.cache.hasGuildsIntent) await this.client.cache.guilds?.patch(CacheFrom.Rest, guildId, guild);
-		return new Guild(this.client, guild);
+		return Transformers.Guild(this.client, guild);
 	}
 
 	list(query?: RESTGetAPICurrentUserGuildsQuery): Promise<AnonymousGuildStructure[]> {
@@ -125,6 +147,21 @@ export class GuildShorter extends BaseShorter {
 				channels.map<[string, APIChannel]>(x => [x.id, x]),
 				guildId,
 			);
+
+			const filtered = channels.filter(
+				(ch): ch is MakeRequired<APITextChannel, 'permission_overwrites' | 'guild_id'> => {
+					return 'permission_overwrites' in ch && ch.permission_overwrites !== undefined && ch.guild_id !== undefined;
+				},
+			);
+			if (filtered.length) {
+				await this.client.cache.overwrites?.set(
+					CacheFrom.Rest,
+					filtered.map(x => {
+						return [x.id, x.permission_overwrites] as const;
+					}),
+					guildId,
+				);
+			}
 			return channels.map(m => channelFrom(m, this.client));
 		},
 
@@ -144,6 +181,9 @@ export class GuildShorter extends BaseShorter {
 
 			channel = await this.client.proxy.channels(channelId).get();
 			await this.client.cache.channels?.patch(CacheFrom.Rest, channelId, guildId, channel);
+			if ('permission_overwrites' in channel && channel.permission_overwrites) {
+				await this.client.cache.overwrites?.set(CacheFrom.Rest, channelId, guildId, channel.permission_overwrites);
+			}
 			return channelFrom(channel, this.client);
 		},
 
@@ -153,10 +193,13 @@ export class GuildShorter extends BaseShorter {
 		 * @param body The data for creating the channel.
 		 * @returns A Promise that resolves to the created channel.
 		 */
-		create: async (guildId: string, body: RESTPostAPIGuildChannelJSONBody) => {
+		create: async <T extends GuildChannelTypes = GuildChannelTypes>(
+			guildId: string,
+			body: RESTPostAPIGuildChannelJSONBody & { type: T },
+		): Promise<SeyfertChannelMap[T]> => {
 			const res = await this.client.proxy.guilds(guildId).channels.post({ body });
 			await this.client.cache.channels?.setIfNI(CacheFrom.Rest, BaseChannel.__intent__(guildId), res.id, guildId, res);
-			return channelFrom(res, this.client);
+			return channelFrom(res, this.client) as SeyfertChannelMap[T];
 		},
 
 		/**
@@ -372,4 +415,9 @@ export class GuildShorter extends BaseShorter {
 			await this.client.cache.stickers?.removeIfNI('GuildExpressions', stickerId, guildId);
 		},
 	};
+}
+
+export interface GuildFetchOptions {
+	query?: RESTGetAPIGuildQuery;
+	force?: boolean;
 }

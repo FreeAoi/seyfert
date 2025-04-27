@@ -23,6 +23,7 @@ import {
 	EmojiShorter,
 	GuildShorter,
 	InteractionShorter,
+	InvitesShorter,
 	LogLevels,
 	Logger,
 	type MakeRequired,
@@ -81,6 +82,7 @@ export class BaseClient {
 	interactions = new InteractionShorter(this);
 	voiceStates = new VoiceStateShorter(this);
 	soundboards = new SoundboardShorter(this);
+	invites = new InvitesShorter(this);
 
 	debugger?: Logger;
 
@@ -468,6 +470,8 @@ export interface BaseClientOptions {
 	globalMiddlewares?: readonly (keyof RegisteredMiddlewares)[];
 	commands?: {
 		defaults?: {
+			onBeforeMiddlewares?: (context: CommandContext | MenuCommandContext<any, never>) => unknown;
+			onBeforeOptions?: Command['onBeforeOptions'];
 			onRunError?: (context: MenuCommandContext<any, never> | CommandContext, error: unknown) => unknown;
 			onPermissionsFail?: Command['onPermissionsFail'];
 			onBotPermissionsFail?: (
@@ -487,6 +491,7 @@ export interface BaseClientOptions {
 	};
 	components?: {
 		defaults?: {
+			onBeforeMiddlewares?: ComponentCommand['onBeforeMiddlewares'];
 			onRunError?: ComponentCommand['onRunError'];
 			onInternalError?: ComponentCommand['onInternalError'];
 			onMiddlewaresError?: ComponentCommand['onMiddlewaresError'];
@@ -495,6 +500,7 @@ export interface BaseClientOptions {
 	};
 	modals?: {
 		defaults?: {
+			onBeforeMiddlewares?: ModalCommand['onBeforeMiddlewares'];
 			onRunError?: ModalCommand['onRunError'];
 			onInternalError?: ModalCommand['onInternalError'];
 			onMiddlewaresError?: ModalCommand['onMiddlewaresError'];

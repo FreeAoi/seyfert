@@ -1,5 +1,5 @@
 import { Collection, Formatter, type RawFile, type ReturnCache } from '..';
-import { ActionRow, Embed, PollBuilder, resolveAttachment } from '../builders';
+import { Embed, PollBuilder, resolveAttachment } from '../builders';
 import type { Overwrites } from '../cache/resources/overwrites';
 import {
 	type BaseChannelStructure,
@@ -22,8 +22,9 @@ import {
 	type VoiceStateStructure,
 	type WebhookStructure,
 } from '../client';
-import type { UsingClient } from '../commands';
+import type { SeyfertChannelMap, UsingClient } from '../commands';
 import {
+	type CreateInviteFromChannel,
 	type EmojiResolvable,
 	type MessageCreateBodyRequest,
 	type MessageUpdateBodyRequest,
@@ -167,14 +168,10 @@ export class BaseNoEditableChannel<T extends ChannelType> extends DiscordBase<AP
 			list: (force = false): Promise<AllChannels[]> => ctx.client.guilds.channels.list(ctx.guildId, force),
 			fetch: (id: string, force = false): Promise<AllChannels> =>
 				ctx.client.guilds.channels.fetch(ctx.guildId, id, force),
-			create: <T extends RESTPostAPIGuildChannelJSONBody["type"]>(body: RESTPostAPIGuildChannelJSONBody & { type: T }): Promise<
-				T extends ChannelType.GuildVoice ? VoiceChannel :
-				T extends ChannelType.GuildText ? TextGuildChannel :
-				T extends ChannelType.GuildStageVoice ? StageChannel :
-				T extends ChannelType.GuildCategory ? CategoryChannel :
-				AllChannels
-			> =>
-				ctx.client.guilds.channels.create(ctx.guildId, body) as any,
+			create: <T extends GuildChannelTypes = GuildChannelTypes>(
+				body: RESTPostAPIGuildChannelJSONBody & { type: T },
+			): Promise<SeyfertChannelMap[T]> =>
+				ctx.client.guilds.channels.create(ctx.guildId, body as never) as Promise<SeyfertChannelMap[T]>,
 			delete: (id: string, reason?: string): Promise<AllChannels> =>
 				ctx.client.guilds.channels.delete(ctx.guildId, id, reason),
 			edit: (id: string, body: RESTPatchAPIChannelJSONBody, reason?: string): Promise<AllChannels> =>
@@ -216,6 +213,16 @@ export class BaseGuildChannel extends BaseChannel<ChannelType> {
 		const { permission_overwrites, ...rest } = data;
 		super(client, rest);
 	}
+
+	invites = {
+		list: () => this.client.invites.channels.list(this.id),
+		create: (data: Omit<CreateInviteFromChannel, 'channelId'>) =>
+			this.client.invites.channels.create({
+				...data,
+				channelId: this.id,
+			}),
+		delete: (code: string, reason?: string) => this.client.invites.delete(code, reason),
+	};
 
 	permissionOverwrites = {
 		fetch: (): ReturnType<Overwrites['get']> =>
@@ -346,8 +353,8 @@ export class MessagesMethods extends DiscordBase {
 		const payload = {
 			allowed_mentions: self.options?.allowedMentions,
 			...body,
-			components: body.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)) ?? undefined,
-			embeds: body.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)) ?? undefined,
+			embeds: body.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)),
+			components: body.components?.map(x => ('toJSON' in x ? x.toJSON() : x)) ?? undefined,
 			poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
 		};
 
@@ -695,3 +702,15 @@ export type AllChannels =
 	| NewsChannelStructure
 	| DirectoryChannelStructure
 	| StageChannelStructure;
+
+export type GuildChannelTypes =
+	| ChannelType.GuildAnnouncement
+	| ChannelType.GuildVoice
+	| ChannelType.GuildText
+	| ChannelType.GuildStageVoice
+	| ChannelType.GuildForum
+	| ChannelType.GuildMedia
+	| ChannelType.GuildCategory
+	| ChannelType.AnnouncementThread
+	| ChannelType.PrivateThread
+	| ChannelType.PublicThread;

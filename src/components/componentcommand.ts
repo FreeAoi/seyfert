@@ -22,13 +22,10 @@ export abstract class ComponentCommand {
 
 	/** @internal */
 	_filter(context: ComponentContext) {
-
 		if (this.customId) {
 			const isString = typeof this.customId === 'string';
-			const matches = isString 
-				? this.customId === context.customId
-				: (this.customId as RegExp).test(context.customId);
-			
+			const matches = isString ? this.customId === context.customId : (this.customId as RegExp).test(context.customId);
+
 			if (!matches) return false;
 		}
 
@@ -44,6 +41,7 @@ export abstract class ComponentCommand {
 		return ComponentType[this.componentType];
 	}
 
+	onBeforeMiddlewares?(context: ComponentContext): any;
 	onAfterRun?(context: ComponentContext, error: unknown | undefined): any;
 	onRunError?(context: ComponentContext, error: unknown): any;
 	onMiddlewaresError?(context: ComponentContext, error: string): any;
