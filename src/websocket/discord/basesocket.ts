@@ -25,14 +25,14 @@ export class BaseSocket {
 				return new Promise<number>(res => {
 					const nonce = randomUUID();
 					const start = performance.now();
-					const listener = (data: Buffer) => {
+					const listener = ({ data }: MessageEvent) => {
 						if (data.toString() !== nonce) return;
 						//@ts-expect-error
-						ws.removeListener('pong', listener);
+						ws.removeEventListener('pong', listener);
 						res(performance.now() - start);
 					};
 					//@ts-expect-error
-					ws.on('pong', listener);
+					ws.addEventListener('pong', listener);
 					//@ts-expect-error
 					ws.ping(nonce);
 				});

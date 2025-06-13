@@ -39,6 +39,7 @@ export interface CreateComponentCollectorResult {
 	): void;
 	stop(reason?: string): any;
 	asyncRun(customId: UserMatches): Promise<CollectorInteraction | null>;
+	resetTimeouts(): void;
 }
 
 export class ComponentHandler extends BaseHandler {
@@ -114,28 +115,6 @@ export class ComponentHandler extends BaseHandler {
 				if (!old) return;
 				options.onStop?.(reason, () => {
 					this.createComponentCollector(messageId, channelId, guildId, options, old.components);
-				});
-			},
-			asyncRun: customId => {
-				return new Promise(resolve => {
-					const collector = this.values.get(messageId);
-
-					if (!collector) {
-						resolve(null);
-						return;
-					}
-
-					this.values.get(messageId)!.__run(customId, interaction => {
-						this.clearValue(messageId);
-						resolve(interaction);
-					});
-
-					if (collector?.timeout) clearTimeout(collector.timeout);
-					collector.timeout = setTimeout(() => {
-						this.clearValue(messageId);
-						resolve(null);
-						// by default 15 seconds in case user don't do anything
-					}, collector?.options?.timeout ?? 15_000);
 				});
 			},
 		};
